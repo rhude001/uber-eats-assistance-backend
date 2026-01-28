@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Upload Backend</title>
+</head>
+<body>
+    <h1>Test Upload Backend Uber Eats</h1>
+    
+    <div style="margin: 20px; padding: 20px; border: 2px solid #06C167; border-radius: 10px;">
+        <h2>Test 1: Upload Vidéo</h2>
+        <input type="file" id="videoFile" accept="video/*">
+        <button onclick="uploadVideo()">Tester Upload</button>
+        <div id="uploadResult" style="margin-top: 10px;"></div>
+    </div>
+    
+    <div style="margin: 20px; padding: 20px; border: 2px solid #3498db; border-radius: 10px;">
+        <h2>Test 2: Configuration Email</h2>
+        <button onclick="testEmail()">Tester Email</button>
+        <div id="emailResult" style="margin-top: 10px;"></div>
+    </div>
+    
+    <script>
+        async function uploadVideo() {
+            const fileInput = document.getElementById('videoFile');
+            const resultDiv = document.getElementById('uploadResult');
+            
+            if (!fileInput.files[0]) {
+                resultDiv.innerHTML = '<p style="color: red; padding: 10px; background: #ffe6e6; border-radius: 5px;">⚠️ Sélectionnez une vidéo d\'abord</p>';
+                return;
+            }
+            
+            const file = fileInput.files[0];
+            resultDiv.innerHTML = `
+                <div style="padding: 15px; background: #fff3cd; border-radius: 5px; margin-bottom: 10px;">
+                    <p>📤 Upload en cours...</p>
+                    <p><strong>Fichier:</strong> ${file.name}</p>
+                    <p><strong>Taille:</strong> ${(file.size / 1024 / 1024).toFixed(2)} MB</p>
+                    <p><strong>Type:</strong> ${file.type}</p>
+                </div>
+            `;
+            
+            const formData = new FormData();
+            formData.append('videoFile', file);
+            
+            try {
+                const startTime = Date.now();
+                const response = await fetch('http://localhost:5000/api/test-upload', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const endTime = Date.now();
+                const duration = (endTime - startTime) / 1000;
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    resultDiv.innerHTML += `
+                        <div style="padding: 15px; background: #d4edda; border-radius: 5px; margin-top: 10px;">
+                            <p style="color: #155724; font-weight: bold;">✅ Upload réussi en ${duration.toFixed(2)} secondes!</p>
+                            <p><strong>Fichier enregistré:</strong> ${data.file.filename}</p>
+                            <p><strong>Taille:</strong> ${(data.file.size / 1024 / 1024).toFixed(2)} MB</p>
+                            <p><strong>Chemin:</strong> ${data.file.path}</p>
+                            <button onclick="checkFile('${data.file.filename}')" style="margin-top: 10px; padding: 5px 10px; background: #28a745; color: white; border: none; border-radius: 3px; cursor: pointer;">
+                                Vérifier le fichier
+                            </button>
+                        </div>
+                    `;
+                } else {
+                    resultDiv.innerHTML += `
+                        <div style="padding: 15px; background: #f8d7da; border-radius: 5px; margin-top: 10px;">
+                            <p style="color: #721c24; font-weight: bold;">❌ Erreur ${response.status}</p>
+                            <p>${data.error || 'Erreur inconnue'}</p>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML += `
+                    <div style="padding: 15px; background: #f8d7da; border-radius: 5px; margin-top: 10px;">
+                        <p style="color: #721c24; font-weight: bold;">❌ Erreur réseau</p>
+                        <p>${error.message}</p>
+                        <p>Vérifiez que le serveur backend tourne sur le port 5000</p>
+                    </div>
+                `;
+            }
+        }
+        
+        async function checkFile(filename) {
+            try {
+                const response = await fetch(`http://localhost:5000/uploads/${filename}`);
+                if (response.ok) {
+                    alert(`✅ Fichier ${filename} accessible!`);
+                } else {
+                    alert(`❌ Fichier ${filename} non trouvé`);
+                }
+            } catch (error) {
+                alert(`Erreur: ${error.message}`);
+            }
+        }
+        
+        async function testEmail() {
+            const resultDiv = document.getElementById('emailResult');
+            resultDiv.innerHTML = '<div style="padding: 10px; background: #fff3cd; border-radius: 5px;">Test en cours...</div>';
+            
+            try {
+                const response = await fetch('http://localhost:5000/api/test-email', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    resultDiv.innerHTML = `
+                        <div style="padding: 15px; background: #d4edda; border-radius: 5px;">
+                            <p style="color: #155724; font-weight: bold;">✅ Email configuré!</p>
+                            <pre style="background: white; padding: 10px; border-radius: 3px; overflow: auto;">${JSON.stringify(data, null, 2)}</pre>
+                        </div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <div style="padding: 15px; background: #f8d7da; border-radius: 5px;">
+                            <p style="color: #721c24; font-weight: bold;">❌ Erreur</p>
+                            <p>${data.error || 'Unknown error'}</p>
+                            <p>Vérifiez votre .env et le mot de passe Gmail</p>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div style="padding: 15px; background: #f8d7da; border-radius: 5px;">
+                        <p style="color: #721c24; font-weight: bold;">❌ Erreur réseau</p>
+                        <p>${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+    </script>
+</body>
+</html>
