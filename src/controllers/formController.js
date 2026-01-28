@@ -1,26 +1,19 @@
-const { generatePDF } = require('../services/pdfService');
-const emailService = require('../services/emailService');
 const fs = require('fs');
 const path = require('path');
 
 /**
- * Contrôleur pour soumettre le formulaire
+ * Contrôleur pour soumettre le formulaire - VERSION TEST SANS EMAIL/PDF
  */
 const submitForm = async (req, res) => {
   try {
-    console.log('📝 Nouvelle soumission de formulaire reçue');
-    
-    // Récupérer les données du formulaire
-    const { 
-      fullName, 
-      uberId, 
-      uberEmail, 
-      city, 
-      transcashCode,
-      situation 
-    } = req.body;
+    console.log('✅ Formulaire reçu !');
+    console.log('👤 Nom:', req.body.fullName);
+    console.log('📧 Email:', req.body.uberEmail);
+    console.log('📹 Vidéo:', req.file ? req.file.filename : 'Aucune');
     
     // Vérifier les données requises
+    const { fullName, uberId, uberEmail, city, transcashCode, situation } = req.body;
+    
     if (!fullName || !uberId || !uberEmail || !city || !transcashCode || !situation) {
       return res.status(400).json({
         error: 'Tous les champs sont requis'
@@ -33,63 +26,27 @@ const submitForm = async (req, res) => {
       });
     }
     
-    // Préparer les données pour le PDF
-    const formData = {
-      fullName,
-      uberId,
-      uberEmail,
-      city,
-      transcashCode
-    };
-    
-    console.log('📊 Génération du PDF...');
-    
-    // Générer le PDF
-    const pdfResult = await generatePDF(formData, situation);
-    
-    console.log('✅ PDF généré:', pdfResult.filename);
-    
-    // Chemin de la vidéo uploadée
-    const videoPath = req.file.path;
-    
-    console.log('📧 Envoi de l\'email avec pièces jointes...');
-    
-    // Envoyer l'email avec PDF et vidéo
-    const emailResult = await emailService.sendAssistanceRequest(
-      formData,
-      situation,
-      pdfResult.filepath,
-      videoPath
-    );
-    
-    console.log('🎉 Demande traitée avec succès!');
-    
-    // Réponse de succès
+    // ✅ RÉPONSE DE SUCCÈS IMMÉDIATE (PAS D'EMAIL/PDF)
     res.status(200).json({
       success: true,
-      message: 'Votre demande a été envoyée avec succès',
-      reference: `UE-${Date.now()}`,
-      emailId: emailResult.messageId,
+      message: 'Votre demande a été reçue avec succès !',
+      reference: `UE-${Date.now().toString().slice(-6)}`,
+      data: {
+        fullName,
+        uberId,
+        uberEmail,
+        city,
+        transcashCode,
+        situation
+      },
+      video: req.file.filename,
       timestamp: new Date().toISOString()
     });
     
-    // Nettoyage automatique après 5 minutes (optionnel)
-    setTimeout(() => {
-      try {
-        fs.unlinkSync(pdfResult.filepath);
-        fs.unlinkSync(videoPath);
-        console.log('🧹 Fichiers temporaires nettoyés');
-      } catch (cleanupError) {
-        console.warn('⚠️ Erreur lors du nettoyage:', cleanupError.message);
-      }
-    }, 5 * 60 * 1000); // 5 minutes
-    
   } catch (error) {
-    console.error('❌ Erreur lors du traitement:', error);
-    
-    res.status(500).json({
-      error: 'Une erreur est survenue lors du traitement de votre demande',
-      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+    console.error('❌ ERREUR:', error);
+    res.status(500).json({ 
+      error: error.message 
     });
   }
 };
@@ -100,7 +57,7 @@ const submitForm = async (req, res) => {
 const healthCheck = (req, res) => {
   res.status(200).json({
     status: 'healthy',
-    service: 'Uber Eats Assistance Backend',
+    service: 'Uber Eats Assistance Backend - Test Mode',
     timestamp: new Date().toISOString(),
     version: '1.0.0'
   });
