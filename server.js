@@ -21,9 +21,8 @@ if (!fs.existsSync(uploadsDir)) {
 
 // Middleware CORS (autoriser votre frontend)
 const allowedOrigins = [
-  'http://localhost:5173',  // Vite dev server
-  'http://localhost:3000',  // Create React App
-  'https://ueassistech.fr'  // Votre domaine en production
+  'https://uber-eats-assistance-frontend-jqms.vercel.app', // VOTRE URL VERCEL
+  'http://localhost:5173'  // Pour développement
 ];
 
 app.use(cors({
