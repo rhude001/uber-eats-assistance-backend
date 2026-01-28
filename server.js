@@ -20,10 +20,8 @@ if (!fs.existsSync(uploadsDir)) {
 }
 
 // Middleware CORS (autoriser votre frontend)
-const allowedOrigins = [
-  'https://uber-eats-assistance-frontend-jqms.vercel.app', // VOTRE URL VERCEL
-  'http://localhost:5173'  // Pour développement
-];
+const allowedOrigins = process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(',') : ['https://uber-eats-assistance-frontend-jqms.vercel.app', 'http://localhost:5173'];
+
 
 app.use(cors({
   origin: function (origin, callback) {
